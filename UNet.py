@@ -4,15 +4,11 @@ Reference: https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_model.
 import torch
 from torch import nn
 import torch.nn.functional as F
-import pytorch_lightning as pl
 
 from unet_mods import DoubleConv, Down, Up, OutConv
 
-import numpy as np
-import random, time, os
 
-
-class UNet(pl.LightningModule):
+class UNet(nn.Module):
     def __init__(self, n_channels, n_classes, bilinear=True):
         super().__init__()
         self.n_channels = n_channels
@@ -50,25 +46,4 @@ class UNet(pl.LightningModule):
         x = self.up4(x, x1)
         logits = self.outc(x)
         return logits
-
-    def bce_dice_loss(self, x, y, smooth=1e-5):
-        x = x.view(-1)
-        y = y.view(-1)
-
-        intersection = (x * y).sum()
-        dice_loss = 1 - (2. * intersection + smooth) / (x.sum() + y.sum() + smooth)
-
-        BCE = F.binary_cross_entropy(x, y, reduction='mean')
-
-        return 0.5 * BCE + 1 * dice_loss
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-
-        loss = self.bce_dice_loss(y_hat, y)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.02)
 
